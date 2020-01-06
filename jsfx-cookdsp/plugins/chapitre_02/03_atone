@@ -1,0 +1,20 @@
+/*
+Atone, un filtre passe-haut IIR de premier ordre.
+*/
+
+desc: One-Pole Highpass Filter
+
+slider1:800<100,15000,1>frequency (Hz)
+
+@init
+y0 = y1 = 0;
+
+@slider
+a = exp(-2 * $pi * slider1 / srate);
+
+@sample
+y0 = (1 - a) * spl0 + a * y0;
+y1 = (1 - a) * spl1 + a * y1;
+spl0 = spl0 - y0;
+spl1 = spl1 - y1;
+

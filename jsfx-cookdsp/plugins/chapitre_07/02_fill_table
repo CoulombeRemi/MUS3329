@@ -1,0 +1,98 @@
+/* Lecture de tableau dont les echantillons
+   proviennent de l'entree audio du plugin. */
+desc:Remplir un tableau via l'input audio
+
+slider1:60<20,250>Frequence fondamentale
+slider2:-6<-60,0>Gain (dB)
+
+import cookdsp.jsfx-inc
+
+@init
+/* longueur du tableau */
+len = 512;
+/* espace memoire stereo */
+bufLmem = bufL.buffer(len);
+bufRmem = bufR.buffer(len);
+/* phase de lecture courante */
+phase = 0;
+/* signal d'activation de l'enregistrement */
+record = 0;
+/* phase d'ecriture */
+recpos = len;
+/* enveloppe du grain */
+window.buffer(len);
+window.buffer_window(1);
+
+@slider
+/* calcul l'increment de lecture en 
+   fonction de la frequence fondamentale */
+inc = slider1 * len / srate;
+/* calcul du gain */
+amp = pow(10, slider2 * 0.05);
+
+@sample
+/* Si l'enregistrement est actif */
+record == 1 ? (
+  /* enregistre "len" echantillons 
+     multiplies par l'enveloppe. */
+  win = window.buffer_read(recpos);
+  bufL.buffer_write(recpos, spl0 * win);
+  bufR.buffer_write(recpos, spl1 * win);
+  /* incremente la position d'ecriture */
+  recpos += 1;
+  /* arrete l'enregistrement quand les
+     tableaux sont pleins. */
+  recpos == len ? record = 0;
+);
+
+/* genere le signal seulement en mode play */
+play_state == 1 ? (
+  /* lecture du tableau stereo avec interpolation */
+  sigL = bufL.buffer_read2(phase);
+  sigR = bufR.buffer_read2(phase);
+  /* incremente la phase */
+  phase += inc;
+  /* retour a 0 quand la phase atteint la fin du tableau */
+  phase >= len ? phase -= len;
+  /* gestion d'amplitude et sortie */
+  spl0 = sigL * amp;
+  spl1 = sigR * amp;
+);
+
+/* Section graphique, controle et affichage. */
+@gfx 300 200
+gfx_r=gfx_g=gfx_b=1; gfx_a=1;
+gfx_x=gfx_y=0;
+gfx_rectto(gfx_w,gfx_h);
+
+gfx_r=gfx_g=gfx_b=0; gfx_a=1;
+gfx_x = 20; gfx_y = gfx_h / 2; 
+gfx_drawstr("Click anywhere to fill the table!");
+
+mouse_cap == 1 && recpos == len ? (
+  record = 1;
+  recpos = 0;
+);
+
+play_state == 1 ? (
+  chan = 0;
+  bufs = 1000000; bufs[0] = bufLmem; bufs[1] = bufRmem;
+  i = 0;
+  loop(2,
+    gfx_x = 0;
+    offset = gfx_h * 0.25 + chan * gfx_h * 0.5;
+    chan += 1;
+    gfx_r = gfx_g = gfx_b = 0.5;
+    gfx_line(0, offset, gfx_w, offset);
+    gfx_r = gfx_g = gfx_b = 0;
+    j = 0;
+    loop(len,
+      val = bufs[i][j] * gfx_h * -0.25 + offset;
+      j == 0 ? (gfx_y = val) : (
+        gfx_lineto(j * gfx_w / len, val, 1);
+      );
+      j += 1;
+    );
+    i += 1;
+  );
+);

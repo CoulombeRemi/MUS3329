@@ -1,0 +1,16 @@
+/*
+Distorsion arctangente.
+*/
+
+desc: Arctangent Distortion
+
+slider1:0.7<0,1>drive
+
+@slider
+// Calcul le parametre drive (0 = hard, 0.3999 = soft)
+drive = (1.0 - slider1) * 0.3999;
+
+@sample
+spl0 = atan2(spl0, drive) * 0.5;
+spl1 = atan2(spl1, drive) * 0.5;
+

@@ -1,0 +1,17 @@
+/*
+Simple FIR Lowpass Filter.
+*/
+
+desc: FIR Lowpass Filter
+
+@init
+sig0 = sig1 = 0.0;
+y0 = y1 = 0.0;
+
+@sample
+sig0 = (spl0 + y0) * 0.5;
+sig1 = (spl1 + y1) * 0.5;
+y0 = spl0;
+y1 = spl1;
+spl0 = sig0;
+spl1 = sig1;

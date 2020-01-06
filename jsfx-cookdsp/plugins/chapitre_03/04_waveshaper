@@ -1,0 +1,34 @@
+/*
+Waveshaper, distorsionne le signal en appliquant a
+chacun des echantillons la formule suivante:
+
+    (1 + k) * x / (1 + k * abs(x))
+ 
+ou "k" vaut:
+
+    (2 * drive) / (1 - drive)
+    
+Parametre Drive: 0 <= drive < 1
+
+source: musicdsp.com
+*/ 
+
+desc: Waveshaper
+
+slider1:0<0,1>Drive
+
+@slider
+// Restreint le drive sous la valeur 1
+drive = slider1 * 0.999;
+// Calcul la valeur de "k"
+k = (2 * drive) / (1 - drive);
+
+@sample
+// Assure que le signal reste dans les limites -1 a 1.
+spl0 = max(min(spl0, 1), -1);
+spl1 = max(min(spl1, 1), -1);
+// Applique la formule de waveshaping
+spl0 = (1 + k) * spl0 / (1 + k * abs(spl0));
+spl1 = (1 + k) * spl1 / (1 + k * abs(spl1));
+
+

@@ -1,0 +1,40 @@
+/* Un flanger recursif. */
+desc: Flanger
+
+import cookdsp.jsfx-inc
+
+slider1:5<0.1,10>Central Delay in ms
+slider2:0.5<0,1>LFO Depth
+slider3:0.1<0.01,2>LFO Speed in Hz
+slider4:0<0,1>Feedback
+
+@init
+/* 2 fois le delai moyen d'espace-memoire (20 ms). */
+maxlen = ceil(0.02 * srate);
+d1.delay(maxlen);
+d2.delay(maxlen);
+/* Onde sinusoidale pour le LFO. */
+lfo.sine(slider3, 0);
+
+@slider
+/* Calcul du delai moyen en secondes. */
+cdelay = slider1 * 0.001;
+/* Calcul de la profondeur, en fonction du delai moyen. */
+depth = slider2 * 0.99 * cdelay;
+/* Ajustement de la vitesse du LFO. */
+lfo.sine_set_freq(slider3);
+
+@sample
+/* pointer de lecture dans les delais. */
+delpos = depth * lfo.sine_do() + cdelay;
+/* Lecture dans les lignes de delais.
+   Le temps de delai est la valeur instantannee du LFO. */
+readL = d1.delay_fsread2(delpos);
+readR = d2.delay_fsread2(delpos);
+/* Ecriture dans les lignes de delais.
+   Signal original + signal delaye * feedback. */
+d1.delay_write(spl0 + readL * slider4);
+d2.delay_write(spl1 + readR * slider4);
+/* Mixage et sortie. */
+spl0 = (spl0 + readL) * 0.7;
+spl1 = (spl1 + readR) * 0.7; 

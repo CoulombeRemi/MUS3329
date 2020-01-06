@@ -1,0 +1,71 @@
+/*
+Un modele de distorsion tel qu'illustre par le
+scema-bloc a la fin du chapitre 4 des notes de cours.
+Version CookDSP!
+*/
+
+desc: Full-Featured Distortion (version CookDSP)
+
+import cookdsp.jsfx-inc
+
+slider1:-12<-32,18>Pre Gain (dB)
+slider2:50<10,1000>Pre Highpass Frequency (Hz)
+slider3:5000<500,8000>Pre Lowpass cutoff (Hz)
+slider4:0.75<0,1>Drive
+slider5:3500<500,8000>Post Lowpass cutoff (Hz)
+slider6:-12<-40,18>Post Gain (dB)
+slider7:-90<-90,6>Original Signal Gain (dB)
+
+@init
+// Pre highpass filter initialization
+prehpL.buthp(slider2);
+prehpR.buthp(slider2);
+// Pre lowpass filter initialization
+prelpL.butlp(slider3);
+prelpR.butlp(slider3);
+// Post lowpass filter initialization
+postlpL.butlp(slider5);
+postlpR.butlp(slider5);
+
+@slider
+// Pre-amplification
+preamp = dbtoa(slider1);
+// Change cutoff frequency for the highpass filter
+prehpL.buthp_set_freq(slider2);
+prehpR.buthp_set_freq(slider2);
+// Change cutoff frequency for the pre lowpass filter
+prelpL.butlp_set_freq(slider3);
+prelpR.butlp_set_freq(slider3);
+// compute coeffs for the transfer function
+drive = slider4 * 0.999;
+k = (2 * drive) / (1 - drive);
+// Change cutoff frequency for the post lowpass filter
+postlpL.butlp_set_freq(slider5);
+postlpR.butlp_set_freq(slider5);
+// Post-amplification
+postamp = dbtoa(slider6);
+// Dry amplification
+dryamp = dbtoa(slider7);
+
+@sample
+// Dry gain and keep for later
+dryspl0 = spl0 * dryamp; dryspl1 = spl1 * dryamp;
+// Pre amplification
+spl0 *= preamp; spl1 *= preamp;
+// Pre highpass filter
+spl0 = prehpL.buthp_do(spl0);
+spl1 = prehpR.buthp_do(spl1);
+// Pre lowpass filter
+spl0 = prelpL.butlp_do(spl0);
+spl1 = prelpR.butlp_do(spl1);
+// apply transfer function
+spl0 = (1 + k) * spl0 / (1 + k * abs(spl0));
+spl1 = (1 + k) * spl1 / (1 + k * abs(spl1));
+// Post lowpass filter
+spl0 = postlpL.butlp_do(spl0);
+spl1 = postlpR.butlp_do(spl1);
+// post amplification
+spl0 *= postamp; spl1 *= postamp;
+spl0 += dryspl0; spl1 += dryspl1;
+
+

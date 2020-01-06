@@ -1,0 +1,34 @@
+/*
+Comment Ajouter des potentiometres dans l'interface.
+
+Declaration d'un potentiometre:
+sliderX:valeur_initiale<minimum,maximum,pas>description
+*/
+
+desc: No Action But Sliders
+
+// Slider 1: compteur d'entiers entre 0 et 10, init = 0.
+slider1:0<0,10,1>Compteur d'entiers
+
+// Slider 2: nombre decimal entre 0 et 1 (ex.: pour la pan), init = 0.5.
+slider2:0.5<0,1>Panoramisation
+
+// Slider 3: une frequence en Hz entre 20 et 200, par pas de 200, init = 1000  
+slider3:1000<20,20000,200>Frequence en Hz
+
+/* 
+Les potentiometres suivants affichent un menu deroulant pour la selection de 
+valeurs discretes. Un menu est affiche seulement si une liste de symboles est 
+donnee entre accolades, tout juste apres le pas (qui doit etre obligatoirement 1).
+*/
+
+// Slider 4: un commutateur On ou Off, init = Off 
+slider4:0<0,1,1{Off, On}>Commutateur On/Off
+
+// Slider 5: permet de selection une puissance de 2,
+// init = 16 (position 4 en partant de 0)
+slider5:4<0,8,1{1,2,4,8,16,32,64,128,256}>Puissances de 2
+
+// Slider 6: selection parmi un choix de symboles (des noms d'enveloppes) 
+slider6:0<0,4,1{Rectangle,Triangle,Cloche,Trapeze,Parabole}>Enveloppe
+

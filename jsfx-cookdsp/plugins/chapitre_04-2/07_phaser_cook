@@ -1,0 +1,54 @@
+/* Utilisation d'un filtre passe-tout d'ordre 2 pour creer 
+   un trou dans le spectre lorsque le signal filtre est 
+   additionne au signal original. La reinjection du signal
+   de sortie du filtre permet de creer une resonance en 
+   plus de la cancelation. */
+desc: Second-Order Phase Shifter Allpass
+
+import cookdsp.jsfx-inc
+
+slider1:1000<100,10000>Notch 1 Frequency (Hz)
+slider2:1700<100,10000>Notch 2 Frequency (Hz)
+slider3:3300<100,10000>Notch 3 Frequency (Hz)
+slider4:1000<100,2000>Bandwidth (Hz)
+slider5:0<0,0.99>Feedback
+
+@init
+apL.apass(slider1, slider4, slider5);
+apR.apass(slider1, slider4, slider5);
+apL2.apass(slider2, slider4, slider5);
+apR2.apass(slider2, slider4, slider5);
+apL3.apass(slider3, slider4, slider5);
+apR3.apass(slider3, slider4, slider5);
+
+@slider
+apL.apass_set_freq(slider1);
+apR.apass_set_freq(slider1);
+apL2.apass_set_freq(slider2);
+apR2.apass_set_freq(slider2);
+apL3.apass_set_freq(slider3);
+apR3.apass_set_freq(slider3);
+apL.apass_set_bw(slider4);
+apR.apass_set_bw(slider4);
+apL2.apass_set_bw(slider4);
+apR2.apass_set_bw(slider4);
+apL3.apass_set_bw(slider4);
+apR3.apass_set_bw(slider4);
+apL.apass_set_feed(slider5);
+apR.apass_set_feed(slider5);
+apL2.apass_set_feed(slider5);
+apR2.apass_set_feed(slider5);
+apL3.apass_set_feed(slider5);
+apR3.apass_set_feed(slider5);
+
+@sample
+filt = apL.apass_do(spl0);
+filt2 = apL2.apass_do(spl0);
+filt3 = apL3.apass_do(spl0);
+spl0 = (spl0 + filt + filt2 + filt3) * 0.25;  
+
+filt = apR.apass_do(spl1);
+filt2 = apR2.apass_do(spl1);
+filt3 = apR3.apass_do(spl1);
+spl1 = (spl1 + filt + filt2 + filt3) * 0.25;
+

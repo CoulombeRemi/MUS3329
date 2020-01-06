@@ -1,0 +1,32 @@
+/* Trois algorithmes de panoramisation:
+   linear: pan lineaire
+   sincos: pan avec sinus et cosinus
+   sqareroot: pan avec racine carree */
+desc: Panoramisation
+
+slider1:.5<0,1,0.001>Pan
+slider2:0<0,2,1{linear,sincos,sqareroot}>Method
+
+@slider
+/* pan lineaire */
+slider2 == 0 ? (
+  panL = 1 - slider1;
+  panR = slider1;
+) :
+/* pan sinus/cosinus */
+slider2 == 1 ? (
+  panL = cos(slider1 * $pi / 2);
+  panR = sin(slider1 * $pi / 2);
+) :
+/* pan racine carree */
+slider2 == 2 ? ( 
+  panL = sqrt(1 - slider1);
+  panR = sqrt(slider1);
+);
+
+@sample 
+/* mixage mono du signal stereo */
+input = (spl0 + spl1) * 0.707;
+/* amplitudes gauche et droite */
+spl0 = input * panL;
+spl1 = input * panR;

@@ -1,0 +1,42 @@
+/* Lecture de tableau avec interpolation. */
+desc:Lecture de tableau
+
+slider1:500<40,2000>Frequence fondamentale
+slider2:-6<-60,0>Gain (dB)
+
+@init
+/* longueur du tableau */
+len = 1024;
+/* espace memoire */
+buf = 0;
+/* avec une boucle, on ecrit une periode 
+   de la forme d'onde dans le tableau */
+i = 0;
+loop(len,
+  buf[i] = sin(2 * $pi * i / len);
+  i += 1;
+);
+/* phase de lecture courante */
+phase = 0;
+
+@slider
+/* calcul l'increment de lecture en 
+   fonction de la frequence fondamentale */
+inc = slider1 * len / srate;
+/* calcul du gain */
+amp = pow(10, slider2 * 0.05);
+
+@sample
+/* genere le signal seulement en mode play */
+play_state == 1 ? (
+  /* lecture du tableau avec interpolation */
+  ipos = floor(phase);
+  frac = phase - ipos;
+  sig = buf[ipos] + (buf[ipos+1] - buf[ipos]) * frac;
+  /* incremente la phase */
+  phase += inc;
+  /* retour a 0 quand la phase atteint la fin du tableau */
+  phase >= len ? phase -= len;
+  /* gestion d'amplitude et sortie */
+  spl0 = spl1 = sig * amp;
+);

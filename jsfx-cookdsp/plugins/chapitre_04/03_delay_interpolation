@@ -1,0 +1,40 @@
+/* Ligne de delai stereo avec interpolation lineaire,
+   et controle du temps de delai en millisecondes. */
+desc: One Second Delay Line
+
+slider1:250<0.1,1000>delay time (ms)
+
+@init
+/* "srate" echantillons = 1 seconde de delai maximum. */
+maxlen = srate + 1;
+curPos = bufL = 0;
+bufR = bufL + maxlen + 1;
+
+@slider
+/* Conversion ms -> echantillons (ms / 1000 * srate). */
+delay = slider1 * 0.001 * srate;
+
+@sample
+/* Calcul de la position de lecture. */
+pos = curPos - delay;
+pos < 0 ? pos += maxlen;
+/* Interpolation lineaire: y = x + (x1 - x) * frac */
+/* Partie entiere du temps de delai en echantillon. */
+ipart = floor(pos);
+/* Partie fractionnelle du temps de delai en echantillon. */
+fpart = pos - ipart;
+/* Lecture dans les espaces-memoire, avec interpolation. */
+readL = bufL[ipart] + (bufL[ipart+1] - bufL[ipart]) * fpart;
+readR = bufR[ipart] + (bufR[ipart+1] - bufR[ipart]) * fpart;
+/* On ecrit l'echantillon d'entree a l'indice 
+   courant dans chacun des espaces-memoire. */
+bufL[curPos] = spl0;
+bufR[curPos] = spl1;
+/* Echantillon de sortie = 
+   echantillon d'entree + lecture dans la memoire (delai). */
+spl0 = (spl0 + readL) * 0.5;
+spl1 = (spl1 + readR) * 0.5;
+/* On incremente la position courante de 1. */
+curPos += 1;
+/* Si egale au delai maximum, on rammene a zero. */
+curPos == maxlen ? curpos = 0;

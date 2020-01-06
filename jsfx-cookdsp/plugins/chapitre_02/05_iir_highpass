@@ -1,0 +1,22 @@
+desc: First order IIR highpass filter
+
+slider1:1000<200,10000>Cutoff frequency in Hz
+
+@init
+x0 = y0 = 0.0;
+x1 = y1 = 0.0;
+
+@slider
+b1 = exp(-2 * $pi * slider1 / srate);
+a0 = (1 + b1) / 2;
+a1 = -a0;
+
+@sample
+tmp = (spl0 * a0) + (x0 * a1) + (y0 * b1);
+x0 = spl0;
+y0 = spl0 = tmp;
+
+tmp = (spl1 * a0) + (x1 * a1) + (y1 * b1);
+x1 = spl1;
+y1 = spl1 = tmp;
+

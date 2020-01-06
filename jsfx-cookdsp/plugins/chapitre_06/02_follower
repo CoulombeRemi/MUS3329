@@ -1,0 +1,28 @@
+/* Illustration du suivi d'amplitude. */
+desc: Envelope Follower
+
+slider1:10<1,100>Lowpass Cutoff (Hz)
+slider2:-60<-60,6>Noise Gain (dB)
+
+@init
+/* Initialisation des variables du filtre. */
+y0 = y1 = 0;
+
+@slider
+/* Calcul du coefficient du filtre. */
+c = exp(-2 * $pi * slider1 / srate);
+/* Calcul du gain du bruit blanc. */
+gain = pow(10, slider2 * 0.05);
+
+@sample
+/* Rectification positive du signal. */
+aL = abs(spl0); aR = abs(spl1);
+/* Filtrage passe-bas. "y0" et "y1" 
+   contiennent le suivi d'amplitude. */
+y0 = (1-c) * aL + c * y0;
+y1 = (1-c) * aR + c * y1;
+/* Sortie: signal original + 
+   bruit blanc * suivi * gain. */
+spl0 += (rand(2) - 1) * y0 * gain;
+spl1 += (rand(2) - 1) * y1 * gain;
+

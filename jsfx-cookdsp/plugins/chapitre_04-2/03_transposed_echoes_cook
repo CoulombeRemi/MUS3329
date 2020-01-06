@@ -1,0 +1,42 @@
+/* Echos transposes a l'aide d'un delai variable. Afin d'obtenir
+   des transpositions constantes, un LFO triangulaire (variations 
+   de delai constantes) est utilise. */
+desc: Transposed Echoes
+
+import cookdsp.jsfx-inc
+
+slider1:250<100,1000>Central Delay in ms
+slider2:0.5<0,1>LFO Depth
+slider3:0.1<0.01,2>LFO Speed in Hz
+slider4:0<0,1>Feedback
+
+@init
+maxlen = 2 * srate;
+d1.delay(maxlen);
+d2.delay(maxlen);
+/* phasor genere une rampe entre 0 et 1 a une frequence donnee. */
+ramp.phasor(slider3, 0);
+
+@slider
+cdelay = slider1 * 0.001;
+depth = slider2 * 0.99 * cdelay;
+ramp.phasor_set_freq(slider3);
+
+@sample
+/* LFO triangulaire. */
+lfo = ramp.phasor_do();           // rampe entre 0 et 1
+lfo = min(lfo, 1 - lfo) * 4 - 1;  // triangle entre -1 et 1
+lfo = depth * lfo + cdelay;       // ambitus ajuste en fonction du delai
+                                  // central et de la profondeur.
+
+/* Lecture dans les lignes de delais. */
+readL = d1.delay_fsread2(lfo);
+readR = d2.delay_fsread2(lfo);
+/* Ecriture dans les lignes de delais. */
+d1.delay_write(spl0 + readL * slider4);
+d2.delay_write(spl1 + readR * slider4);
+/* Mixage et sortie. */
+spl0 = (spl0 + readL) * 0.5;
+spl1 = (spl1 + readR) * 0.5; 
+
+

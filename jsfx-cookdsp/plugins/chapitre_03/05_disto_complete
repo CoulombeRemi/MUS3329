@@ -1,0 +1,92 @@
+/*
+Un modele de distorsion tel qu'illustre par le
+scema-bloc a la fin du chapitre 4 des notes de cours.
+*/
+
+desc: Full-Featured Distortion
+
+slider1:-12<-32,18>Pre Gain (dB)
+slider2:50<10,500>Pre Highpass Frequency (Hz)
+slider3:5000<500,8000>Pre Lowpass cutoff (Hz)
+slider4:0.75<0,1>Drive
+slider5:3500<500,8000>Post Lowpass cutoff (Hz)
+slider6:-12<-40,18>Post Gain (dB)
+slider7:-90<-90,6>Original Signal Gain (dB)
+
+@init
+// constants
+piOnSr = $pi / srate;
+sqrt2 = sqrt(2);
+// memories for (pre) highpass filter
+hpLx1 = hpLx2 = hpLy1 = hpLy2 = 0;
+hpRx1 = hpRx2 = hpRy1 = hpRy2 = 0;
+// memories for (pre) lowpass filter
+lp1Lx1 = lp1Lx2 = lp1Ly1 = lp1Ly2 = 0;
+lp1Rx1 = lp1Rx2 = lp1Ry1 = lp1Ry2 = 0;
+// memories for (post) lowpass filter
+lp2Lx1 = lp2Lx2 = lp2Ly1 = lp2Ly2 = 0;
+lp2Rx1 = lp2Rx2 = lp2Ry1 = lp2Ry2 = 0;
+
+@slider
+// pre-amplification
+preamp = pow(10, slider1 * 0.05);
+// compute coeffs for the highpass filter
+c = tan(piOnSr * slider2);
+c2 = c * c;
+hpa0 = hpa2 = 1.0 / (1.0 + sqrt2 * c + c2);
+hpa1 = -2.0 * hpa0;
+hpb1 = 2.0 * hpa0 * (c2 - 1.0);
+hpb2 = hpa0 * (1.0 - sqrt2 * c + c2);
+// compute coeffs for the pre lowpass filter
+c = 1 / tan(piOnSr * slider3);
+c2 = c * c;
+lp1a0 = lp1a2 = 1.0 / (1.0 + sqrt2 * c + c2);
+lp1a1 = 2.0 * lp1a0;
+lp1b1 = lp1a1 * (1.0 - c2);
+lp1b2 = lp1a0 * (1.0 - sqrt2 * c + c2);
+// compute coeffs for the transfer function
+drive = slider4 * 0.999;
+k = (2 * drive) / (1 - drive);
+// compute coeffs for the post lowpass filter
+c = 1 / tan(piOnSr * slider5);
+c2 = c * c;
+lp2a0 = lp2a2 = 1.0 / (1.0 + sqrt2 * c + c2);
+lp2a1 = 2.0 * lp2a0;
+lp2b1 = lp2a1 * (1.0 - c2);
+lp2b2 = lp2a0 * (1.0 - sqrt2 * c + c2);
+// post-amplification
+postamp = pow(10, slider6 * 0.05);
+// dry amplification
+dryamp = pow(10, slider7 * 0.05);
+
+@sample
+// dry gain and keep for later
+dryspl0 = spl0 * dryamp; dryspl1 = spl1 * dryamp;
+// pre amplification
+spl0 *= preamp; spl1 *= preamp;
+// highpass filter left
+tmp0 = hpa0 * spl0 + hpa1 * hpLx1 + hpa2 * hpLx2 - hpb1 * hpLy1 - hpb2 * hpLy2;
+hpLx2 = hpLx1; hpLx1 = spl0; hpLy2 = hpLy1; hpLy1 = spl0 = tmp0;
+// highpass filter right
+tmp1 = hpa0 * spl1 + hpa1 * hpRx1 + hpa2 * hpRx2 - hpb1 * hpRy1 - hpb2 * hpRy2;
+hpRx2 = hpRx1; hpRx1 = spl1; hpRy2 = hpRy1; hpRy1 = spl1 = tmp1;
+// pre lowpass filter left
+tmp0 = lp1a0 * spl0 + lp1a1 * lp1Lx1 + lp1a2 * lp1Lx2 - lp1b1 * lp1Ly1 - lp1b2 * lp1Ly2;
+lp1Lx2 = lp1Lx1; lp1Lx1 = spl0; lp1Ly2 = lp1Ly1; lp1Ly1 = spl0 = tmp0;
+// pre lowpass filter right
+tmp1 = lp1a0 * spl1 + lp1a1 * lp1Rx1 + lp1a2 * lp1Rx2 - lp1b1 * lp1Ry1 - lp1b2 * lp1Ry2;
+lp1Rx2 = lp1Rx1; lp1Rx1 = spl1; lp1Ry2 = lp1Ry1; lp1Ry1 = spl1 = tmp1;
+// apply transfer function
+spl0 = (1 + k) * spl0 / (1 + k * abs(spl0));
+spl1 = (1 + k) * spl1 / (1 + k * abs(spl1));
+// post lowpass filter left
+tmp0 = lp2a0 * spl0 + lp2a1 * lp2Lx1 + lp2a2 * lp2Lx2 - lp2b1 * lp2Ly1 - lp2b2 * lp2Ly2;
+lp2Lx2 = lp2Lx1; lp2Lx1 = spl0; lp2Ly2 = lp2Ly1; lp2Ly1 = spl0 = tmp0;
+// post lowpass filter right
+tmp1 = lp2a0 * spl1 + lp2a1 * lp2Rx1 + lp2a2 * lp2Rx2 - lp2b1 * lp2Ry1 - lp2b2 * lp2Ry2;
+lp2Rx2 = lp2Rx1; lp2Rx1 = spl1; lp2Ry2 = lp2Ry1; lp2Ry1 = spl1 = tmp1;
+// post amplification
+spl0 *= postamp; spl1 *= postamp;
+spl0 += dryspl0; spl1 += dryspl1;
+
+

@@ -1,0 +1,32 @@
+/* Ligne de delai mono, avec controle 
+   du temps de delai en echantillons. */
+desc: Simple Delay Line
+
+/* 4410/44100 = 0.1 seconde de delai maximum */
+slider1:25<1,4409,1>delay time (samples)
+
+@init
+/* Delai maximum */
+maxlen = 4410;
+/* Position d'ecriture dans la memoire */
+curPos = 0;
+/* Indice de depart dans la memoire allouee au plugin. */
+bufL = 0;
+
+@sample
+/* Calcul de la position de lecture 
+   (pos d'ecriture - temps de delai) */
+pos = curPos - slider1;
+/* Si la position est negative, on bascule dans le positif. */
+pos < 0 ? pos += maxlen;
+/* Lecture de l'echantillon a l'indice "pos" dans la memoire. */
+readL = bufL[pos];
+/* On ecrit l'echantillon d'entree a l'indice courant. */
+bufL[curPos] = spl0;
+/* Echantillon de sortie = 
+   echantillon d'entree + echantillon lut dans la memoire. */
+spl0 = (spl0 + readL) * 0.5;
+/* On incremente la position courante de 1. */
+curPos += 1;
+/* Si egale au delai maximum, on rammene a zero. */
+curpos == maxlen ? curpos = 0;

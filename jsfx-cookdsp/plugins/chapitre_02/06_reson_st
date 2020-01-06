@@ -1,0 +1,35 @@
+/*
+Reson, Second-order bandpass Filter.
+*/
+
+desc: Reson: Second-Order Bandpass Filter
+
+slider1:800<100,5000,1>frequency (Hz)
+slider2:1<0.7,50>Filter Q
+
+@init 
+twoPiOverSr = 2 * $pi / srate;
+xL0 = xL1 = yL0 = yL1 = 0;
+xR0 = xR1 = yR0 = yR1 = 0;
+
+@slider
+bw = slider1 / slider2;
+b2 = exp(-twoPiOverSr * bw);
+b1 = (-4.0 * b2) / (1.0 + b2) * cos(slider1 * twoPiOverSr);
+a = 1.0 - sqrt(b2);
+
+@sample
+// filtrage du signal gauche
+tmp0 = (a * spl0) - (a * xL1) - (b1 * yL0) - (b2 * yL1);
+xL1 = xL0; 
+xL0 = spl0; 
+yL1 = yL0; 
+spl0 = yL0 = tmp0; 
+
+// filtrage du signal de droite
+tmp1 = (a * spl1) - (a * xR1) - (b1 * yR0) - (b2 * yR1);
+xR1 = xR0;
+xR0 = spl1;
+yR1 = yR0;
+spl1 = yR0 = tmp1;
+

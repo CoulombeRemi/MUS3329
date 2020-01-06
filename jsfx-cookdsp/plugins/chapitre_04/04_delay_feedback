@@ -1,0 +1,46 @@
+/* Ligne de delai stereo avec interpolation lineaire,
+   feedback et controle du temps de delai en ms. */
+desc: One Second Delay Line With Feedback
+
+slider1:250<0,1000,1>delay time (ms)
+slider2:0.5<0,1>feedback
+slider3:-6<-60,12,1>gain (dB)
+
+@init
+maxlen = srate + 1;
+curPos = bufL = 0;
+bufR = bufL + maxlen + 1;
+
+@slider
+/* Conversion ms -> echantillons (ms / 1000 * srate). */
+delay = slider1 * 0.001 * srate;
+/* Feedback (amplitude du signal reinjecte). */
+feed = slider2; 
+/* Conversion des dB en amplitude lineaire. */
+gain = pow(10, slider3 * 0.05);
+
+@sample
+/* Calcul de la position de lecture. */
+pos = curPos - delay;
+pos < 0 ? pos += maxlen;
+ipart = floor(pos); /* Partie entiere */
+fpart = pos - ipart; /* Partie fractionnelle */
+/* Lecture dans les espaces-memoire, avec interpolation. */
+readL = bufL[ipart] + (bufL[ipart+1] - bufL[ipart]) * fpart;
+readR = bufR[ipart] + (bufR[ipart+1] - bufR[ipart]) * fpart;
+/* Ecrit l'echantillon d'entree + le signal delaye, multiplie 
+   par le feeback, a l'indice courant dans les memoires. */
+bufL[curPos] = spl0 + readL * feed;
+bufR[curPos] = spl1 + readR * feed;
+/* Guardpoint, innevitable... */
+curPos == 0 ? (
+  bufL[maxlen] = bufL[0];
+  bufR[maxlen] = bufR[0];
+);
+/* Controle du volume. */
+spl0 = readL * gain;
+spl1 = readR * gain;
+/* On incremente la position courante de 1. */
+curPos += 1;
+/* Si egale au delai maximum, on rammene a zero. */
+curPos == maxlen ? curpos = 0;

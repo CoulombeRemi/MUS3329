@@ -1,0 +1,21 @@
+/*
+Coupure radicale (hard clipping) de la forme d'onde,
+avec controle independant des limites inferieure et
+superieure.
+*/
+
+desc: Hard Clipping
+
+slider1:0<-24,24>Input Boost (dB)
+slider2:-0.9<-1,0>Lower Limit
+slider3:0.9<0,1>Higher Limit
+
+@slider
+// pour amplifier le signal en entree
+preamp = pow(10, slider1 * 0.05);
+
+@sample
+// min(x, y) -> retourne la valeur la plus petite entre x et y
+// max(x, y) -> retourne la valeur la plus grande entre x et y
+spl0 = max(min(spl0 * preamp, slider3), slider2);
+spl1 = max(min(spl1 * preamp, slider3), slider2);

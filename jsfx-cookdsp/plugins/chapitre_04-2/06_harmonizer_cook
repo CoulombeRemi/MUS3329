@@ -1,0 +1,28 @@
+/* Utilisation de la propriete de transposition constante
+   provoquee par une variation de delai lineaire pour creer 
+   une harmonisation en temps reel d'un signal en entree. */
+desc:Two Voices Harmonizer
+
+import cookdsp.jsfx-inc
+
+slider1:-7<-24,12,0.01>Transposition Left
+slider2:4<-24,12,0.01>Transposition Right
+slider3:0<-1,1>Feedback Level
+slider4:0.1<0.001,1>Window Size In Seconds
+
+@init
+h1.harmon(slider1, slider3, slider4);
+h2.harmon(slider2, slider3, slider4);
+
+@slider
+h1.harmon_set_transpo(slider1);
+h2.harmon_set_transpo(slider2);
+h1.harmon_set_feedback(slider3);
+h2.harmon_set_feedback(slider3);
+h1.harmon_set_winsize(slider4);
+h2.harmon_set_winsize(slider4);
+
+@sample
+spl0 += h1.harmon_do(spl0); 
+spl1 += h2.harmon_do(spl1); 
+spl0 *= 0.5; spl1 *= 0.5;

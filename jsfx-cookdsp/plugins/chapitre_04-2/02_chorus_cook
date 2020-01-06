@@ -1,0 +1,51 @@
+/* Un chorus simple construit avec deux lignes de delai recursives. */
+desc: Chorus
+
+import cookdsp.jsfx-inc
+
+slider1:15<10,30>Central Delay in ms
+slider2:0.05<0,.5>LFO Depth
+slider3:1<0.1,5>LFO Speed in Hz
+slider4:-0.25<-1,1>Feedback
+
+@init
+/* 2 fois le delai moyen d'espace-memoire (~60 ms). */
+maxlen = ceil(0.1 * srate);
+d1.delay(maxlen);
+d2.delay(maxlen);
+/* Ondes sinusoidales pour les LFO. */
+lfo1.sine(slider3, 0);
+lfo2.sine(slider3, 0);
+
+@slider
+/* Calcul du delai moyen en secondes. */
+cdelay = slider1 * 0.001;
+/* Profondeur du premier LFO */
+depth1 = slider2 * cdelay;
+/* Profondeur, legerement differente, du second LFO */
+dev = rand(0.2) + 0.9;
+depth2 = slider2 * cdelay * dev;
+/* Ajustement de la vitesse du premier LFO. */
+lfo1.sine_set_freq(slider3);
+/* Ajustement de la vitesse, legerement differente, du second LFO. */
+dev = rand(0.2) + 0.9;
+lfo2.sine_set_freq(slider3 * dev);
+
+@sample
+/* Premier LFO. */
+delpos = depth * lfo1.sine_do() + cdelay;
+/* Lecture du signal de gauche. */
+readL = d1.delay_fsread2(delpos);
+
+/* Second LFO. */
+delpos = depth2 * lfo2.sine_do() + cdelay;
+/* Lecture du signal de gauche. */
+readR = d2.delay_fsread2(delpos);
+
+/* Ecriture dans les lignes de delais.
+   Signal original + signal delaye * feedback. */
+d1.delay_write(spl0 + readL * slider4);
+d2.delay_write(spl1 + readR * slider4);
+/* Mixage et sortie. */
+spl0 = (spl0 + readL) * 0.7;
+spl1 = (spl1 + readR) * 0.7; 

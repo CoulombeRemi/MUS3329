@@ -1,0 +1,68 @@
+/* Un compresseur simple. */
+desc: Compressor
+
+import cookdsp.jsfx-inc
+
+slider1:-30<-70,0>Threshold (dB)
+slider2:4<1,20>ratio
+slider3:10<1,150>Attack Time (ms)
+slider4:100<1,250>Release Time (ms)
+slider5:5<0.5,10>Look Ahead (ms)
+slider6:0<-6,18>Post Gain
+
+@init
+/* Variable filtre passe-bas (suivi d'enveloppe). */
+y0 = 0;
+/* Espaces memoire pour le "look ahead". */
+d1.delay(5000);
+d2.delay(5000);
+
+@slider
+/* Calcul du seuil lineaire. */
+thresh = pow(10, slider1 * 0.05);
+/* Calcul du coefficient du filtre en attaque. */
+freq = 1 / (slider3 * 0.001);
+attC = exp(-2 * $pi * freq / srate);
+/* Calcul du coefficient du filtre en relache. */
+freq = 1 / (slider4 * 0.001);
+relC = exp(-2 * $pi * freq / srate);
+/* Calcul du "look ahead" en echantillons. */
+look = slider5 * 0.001 * srate;
+/* Calcul du gain post-compression. */
+gain = pow(10, slider6 * 0.05);
+
+@sample
+/* "Look Ahead", on delaye legerement les signaux
+   d'entree pour que le resultat de l'analyse
+   s'applique sur les bons echantillons. */
+readL = d1.delay_fread(look);
+readR = d2.delay_fread(look);
+d1.delay_write(spl0);
+d2.delay_write(spl1);
+/* On effectue le calcul de compression sur la 
+   base du signal stereo (pour ne pas modifier
+   les deux canaux independamment. */
+input = (spl0 + spl1) * 0.707;
+/* Rectification positive du signal. */
+absin = abs(input);
+/* Filtrage passe-bas. y0 = suivi d'amplitude. */
+absin > y0 ? (   /* Phase d'attaque */
+  y0 = (1-attC) * absin + attC * y0;
+) : (            /* Phase de relache */
+  y0 = (1-relC) * absin + relC * y0;
+);
+/* Conversion du suivi lineaire en dB. */
+dbin = 20 * log10(y0 + 0.0000001);
+/* Seulement si dbin > Threshold. */
+dbin > slider1 ? (
+  /* Difference entre gain d'entree et seuil. */
+  diff = dbin - slider1;
+  /* Calcul du facteur d'attenuation. */
+  att = pow(10, (diff - diff / slider2) * 0.05);
+  /* Compresse le signal stereo. */
+  readL /= att; readR /= att;
+);
+/* boost et sortie audio. */
+spl0 = readL * gain;
+spl1 = readR * gain;
+ 

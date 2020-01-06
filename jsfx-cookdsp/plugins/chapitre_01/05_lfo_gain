@@ -1,0 +1,26 @@
+/*
+Construction d'une onde triangulaire, a partir d'une 
+rampe, modulant l'amplitude d'un signal stereo.
+*/
+
+desc: LFO Modulated Gain
+
+slider1:1<0.1,20>Speed (Hz)
+
+@slider
+// increment pour la rampe (f / fs).
+inc = slider1 / srate;
+ 
+@sample
+// Tant que la rampe est < 0.5, amp vaut la rampe,
+// c'est la trajectoire ascendante de l'onde triangulaire.
+// Sinon (ramp est > 0.5), amp vaut 1.0 - la rampe,
+// c'est la trajectoire descendante de l'onde triangulaire.
+ramp < 0.5 ? amp = ramp : amp = 1 - ramp;
+// Modulation du signal stereo par l'onde triangulaire.
+spl0 = spl0 * amp;
+spl1 = spl1 * amp;
+// On avance la rampe d'un increment.
+ramp = ramp + inc;
+// On remet la rampe a 0 lorsqu'elle atteint 1.
+ramp >= 1 ? ramp = 0;

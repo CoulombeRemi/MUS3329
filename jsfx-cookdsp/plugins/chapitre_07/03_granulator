@@ -1,0 +1,153 @@
+/* Granulateur. */
+desc:Granulator
+
+slider1:24<1,64,1>Nombre de grains
+slider2:0.1<0.01,0.5>Duree des grains
+slider3:1<0.125,4>Transposition
+slider4:0.01<0,1>Transpo par grains
+slider5:0<0,1>Position de lecture
+slider6:0.01<0,1>Random sur la position
+slider7:-12<-60,0>Gain (dB)
+slider8:0<0,1,1{Off,On}>Activate drawing (CPU intensive)
+
+import cookdsp.jsfx-inc
+
+@init
+/* longueur maximale des tableaux (1 minute) */
+maxlen = srate * 60;
+/* longueur du signal enregistre */
+curlen = 0;
+/* espace memoire stereo */
+bufL = memalloc(maxlen);
+bufR = memalloc(maxlen);
+/* signal d'enregistrement, phase d'ecriture */
+record = recpos = 0;
+/* enveloppe du grain (fonction belangeo) */
+win.buffer(1024);
+win.buffer_window(1);
+/* emplacement des memoires des grains */
+startpos = memalloc(64);
+gsize = memalloc(64);
+gphase = memalloc(64);
+lastppos = memalloc(64);
+
+last_ngrains = -1;
+pointerpos = 0;
+posY = 0; posC = 0.99;
+
+@slider
+ngrains = slider1;
+ngrains <= 24 ? gaincomp = pow(10, -(ngrains / 2) * 0.05) : gaincomp = pow(10, -12 * 0.05);
+last_ngrains != ngrains ? (
+  last_ngrains = ngrains;
+  memset(startpos, 0, 256);
+  i = 0;
+  loop(ngrains,
+    ph = (i/ngrains) * (1.0 + (rand(2)-1) * 0.01);
+    ph < 0 ? ph = 0 : ph >= 1 ? ph -= 1;
+    gphase[i] = ph;
+    lastppos[i] = 1;
+    i += 1;
+  );
+);
+frtosamps = (1 / slider2) / srate;
+inc = slider3 * frtosamps;
+transPerGrain = pow(slider4, 3) * 0.5;
+rndposPerGrain = pow(slider6, 3) * 0.5;
+gain = pow(10, slider7 * 0.05);
+
+@sample
+/* genere le signal seulement en mode play */
+play_state == 1 ? (
+  /* Si l'enregistrement est actif */
+  record == 1 ? (
+    bufL[recpos] = spl0;
+    bufR[recpos] = spl1;
+    /* incremente la position d'ecriture */
+    recpos += 1;
+    curlen = recpos;
+    recpos == maxlen ? record = 0;
+  ) : (
+    /* sinon, en mode play */
+    posY = slider5 + (posY - slider5) * posC;
+    recpos = 0;
+    spl0 = spl1 = sigL = sigR = 0;
+  
+    i = 0;
+    loop(ngrains,
+      ppos = pointerpos + gphase[i];
+      ppos >= 1 ? ppos -= 1;
+      /*compute envelope */
+      amp = win.buffer_read2(ppos * 1023);
+  
+      ppos < lastppos[i] ? (
+        adjlen = curlen - gsize[i];
+        gsize[i] = (1 + (rand(2)-1) * transPerGrain) * slider2 * srate;
+        startpos[i] = posY * adjlen;
+        startpos[i] += (rand(2)-1) * rndposPerGrain * curlen;
+        startpos[i] < 0 ? startpos[i] += adjlen : startpos[i] >=  adjlen ? startpos[i] -=  adjlen;
+      );
+      lastppos[i] = ppos;
+  
+      /*compute grain */
+      index = ppos * gsize[i] + startpos[i];
+      index >= 0 && index < (curlen - 1) ? (
+        ipos = floor(index);
+        frac = index - ipos;
+        sigL += (bufL[ipos] + (bufL[ipos+1] - bufL[ipos]) * frac) * amp;
+        sigR += (bufR[ipos] + (bufR[ipos+1] - bufR[ipos]) * frac) * amp;
+      );
+      i += 1;
+    );
+    spl0 = sigL * gain * gaincomp;
+    spl1 = sigR * gain * gaincomp;
+    pointerpos += inc;
+    pointerpos < 0 ? pointerpos += 1 : pointerpos >= 1 ? pointerpos -= 1;
+  );
+);
+
+// Section graphique, controle et affichage.
+@gfx 200 200
+gfx_r=gfx_g=gfx_b=1; gfx_a=1;
+gfx_x=gfx_y=0;
+gfx_rectto(gfx_w,gfx_h);
+
+gfx_r=gfx_g=gfx_b=0; gfx_a=1;
+gfx_x = 20; gfx_y = gfx_h / 2; 
+gfx_drawstr("Click anywhere to fill the table!");
+
+mouse_cap == 1 ? (
+  record = 1;
+  gfx_r=1; gfx_g=gfx_b=0; gfx_a=1;
+  gfx_x=gfx_y=0;
+  gfx_rectto(gfx_w,gfx_h);
+  gfx_r=gfx_g=gfx_b=0; gfx_a=1;
+  gfx_x = 20; gfx_y = gfx_h / 2; 
+  gfx_drawstr("Recording...");
+) : (
+  record = 0;
+  recpos = 0;
+);
+
+// This part is CPU intensive...
+play_state == 1 && slider8 ? (
+    chan = 0;
+    bufs = 6000000; bufs[0] = bufL; bufs[1] = bufR;
+    loop(2,
+        gfx_x = 0;
+        offset = gfx_h * 0.25 + chan * gfx_h * 0.5;
+        gfx_r = gfx_g = gfx_b = 0.5;
+        gfx_line(0, offset, gfx_w, offset);
+        gfx_r = gfx_g = gfx_b = 0;
+        j = 0;
+        loop(gfx_w,
+            pos = floor(j / gfx_w * curlen);
+            val = bufs[chan][pos] * gfx_h * -0.25;
+            j == 0 ? (gfx_y = val) : (
+                gfx_line(j, offset+val, j, offset-val);
+            );
+            j += 1;
+        );
+        chan += 1;
+    );
+);

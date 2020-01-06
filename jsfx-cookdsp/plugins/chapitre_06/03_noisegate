@@ -1,0 +1,43 @@
+/* Une porte de bruit simple. */
+desc: Noise Gate
+
+slider1:-30<-70,0>Threshold (dB)
+slider2:50<1,250>Portamento (ms)
+
+@init
+/* Initialisation des variables du filtre. */
+y0 = y1 = 0;
+/* Calcul du coefficient du filtre (fixe a 10 Hz). */
+c = exp(-2 * $pi * 10 / srate);
+/* Initialisation des variables d'amplitude. */
+gate0 = gate1 = 0;
+/* Initialisation des variables du portamento. */
+port0 = port1 = 0;
+
+@slider
+/* Calcul du seuil lineaire. */
+thresh = pow(10, slider1 * 0.05);
+/* Calcul du coefficient du filtre passe-bas
+   utilise pour filtrer les changements de gain
+   (portamento). hz = 1 / (ms / 1000). */
+freq = 1 / (slider2 * 0.001);
+coeff = exp(-2 * $pi * freq / srate);
+
+@sample
+/* Rectification positive du signal. */
+aL = abs(spl0); aR = abs(spl1);
+/* Filtrage passe-bas. "y0" et "y1" 
+   contiennent le suivi d'amplitude. */
+y0 = (1-c) * aL + c * y0;
+y1 = (1-c) * aR + c * y1;
+/* Ouverture de la porte si suivi > seuil. */
+y0 > thresh ? gate0 = 1 : gate0 = 0;
+y1 > thresh ? gate1 = 1 : gate1 = 0;
+/* Filtrage passe-bas. "port0" et "port1" 
+   contiennent la courbe de gain de la porte. */
+port0 = (1 - coeff) * gate0 + coeff * port0;
+port1 = (1 - coeff) * gate1 + coeff * port1;
+/* Signal de sortie : splX * courbe de gain. */
+spl0 *= port0;
+spl1 *= port1;
+

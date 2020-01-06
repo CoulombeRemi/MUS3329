@@ -1,0 +1,41 @@
+/* Ligne de delai stereo simple, avec controle 
+   du temps de delai en echantillons. */
+desc: Simple Stereo Delay Line
+
+/* 4410/44100 = 0.1 seconde de delai maximum */
+slider1:25<1,4409,1>delay time (samples)
+
+@init
+/* Delai maximum */
+maxlen = 4410;
+/* Position d'ecriture dans la memoire */
+curPos = 0;
+/* Indice de depart, pour le canal de gauche, 
+   dans la memoire allouee au plugin. */
+bufL = 0;
+/* Indice de depart, pour le canal de droite, 
+   dans la memoire allouee au plugin (a la suite 
+   de l'espace reserve pour le canal de gauche + 1). */
+bufR = bufL + maxlen + 1;
+
+@sample
+/* Calcul de la position de lecture 
+   (pos d'ecriture - temps de delai) */
+pos = curPos - slider1;
+/* Si la position est negative,  on bascule dans le positif. */
+pos < 0 ? pos += maxlen;
+/* Lecture de l'echantillon a l'indice "pos" dans les memoires. */
+readL = bufL[pos];
+readR = bufR[pos];
+/* On ecrit l'echantillon d'entree a l'indice 
+   courant dans chacun des espaces-memoire. */
+bufL[curPos] = spl0;
+bufR[curPos] = spl1;
+/* Echantillon de sortie = 
+   echantillon d'entree + lecture dans la memoire (delai). */
+spl0 = (spl0 + readL) * 0.5;
+spl1 = (spl1 + readR) * 0.5;
+/* On incremente la position courante de 1. */
+curPos += 1;
+/* Si egale au delai maximum, on rammene a zero. */
+curpos == maxlen ? curpos = 0;

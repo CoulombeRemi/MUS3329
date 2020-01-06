@@ -1,0 +1,43 @@
+/*
+Reson, un filtre passe-bande IIR du second ordre (version mono).
+*/
+
+desc: Reson: Second-Order Bandpass Filter
+
+slider1:800<100,5000,1>Frequency (Hz)
+slider2:1<0.7,50>Filter Q
+
+@init 
+// Initialisation a zero des quatre espaces memoires servant
+// a conserver les deux derniers echantillons d'entree
+x1 = x2 = 0;
+// et les deux derniers echantillons de sortie
+y1 = y2 = 0;
+
+@slider
+// Calcul de la largeur de bande (frequence centrale / Q)
+bw = slider1 / slider2;
+
+// Calcul des coefficients (en suivant la recette)
+b2 = exp(-2 * $pi / srate * bw);
+b1 = (-4.0 * b2) / (1.0 + b2) * cos(2 * $pi * slider1 / srate);
+a1 = 1.0 - sqrt(b2);
+
+@sample
+// Equation du filtre (spl0 = echantillon present, x2 = 2e delai
+// du signal d'entree, y1 = 1er delai du signal de sortie, y2 = 2e
+// delai du signal de sortie (x1 n'est pas utilise dans l'equation)
+tmp0 = (a1 * spl0) - (a1 * x2) - (b1 * y1) - (b2 * y2);
+
+// On prepare les memoires pour le prochain calcul qui aura lieu
+// a la periode d'echantillonnage suivante.
+// Le 1er delai du signal d'entree devient le 2e delai d'entree
+x2 = x1; 
+// L'echantillon courant devient le 1er delai du signal d'entree
+x1 = spl0; 
+// Le 1er delai du signal de sortie devient le 2e delai de sortie
+y2 = y1; 
+// La sortie du filtre devient le 1er delai du signal de sortie ...
+y1 = tmp0;
+// ... et est envoyee a la sortie audio
+spl0 = tmp0;

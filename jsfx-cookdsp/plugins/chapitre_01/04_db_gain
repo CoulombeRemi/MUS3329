@@ -1,0 +1,16 @@
+/*
+Amplification logarithmique d'un signal stereo.
+*/
+
+desc: DB Gain
+
+slider1:0<-60,18>Gain en dB
+
+@slider
+amp = 10 ^ (slider1 / 20);
+
+@sample
+// Echantillons de gauche * amp (valeur lineaire).
+spl0 = spl0 * amp;
+// Echantillons de droite * amp (valeur lineaire).
+spl1 = spl1 * amp;

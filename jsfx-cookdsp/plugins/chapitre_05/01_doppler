@@ -1,0 +1,49 @@
+/* Effet Doppler controle a l'aide d'un LFO. */
+desc: Doppler Pendulum
+
+import cookdsp.jsfx-inc
+
+slider1:.05<0.01,2>Frequence d'oscillation (Hz)
+slider2:0.2<0.001,0.499>Profondeur du delai (sec)
+
+@init
+tri.blosc(slider1, 0, 3); /* Initialisation du LFO */
+del.delay(srate/2);       /* Initialisation du delai */
+filt.lop(1000);           /* Initialisation du filtre */
+
+@slider
+/* Ajustement de la frequence du LFO. */
+tri.blosc_set_freq(slider1);
+
+@sample 
+/* Input stereo -> mono. */
+input = (spl0 + spl1) * 0.707;
+
+/*** LFO triangulaire ***/
+/* Triangle de -1 a 1 ===> triangle entre 0 et 1. */
+lfo = tri.blosc_do() * 0.5 + 0.5;
+
+/*** Lecture dans la ligne de delai ***/
+/* Triangle entre 0 et 1 ===> triangle entre 0.5 et 0. */
+delay = (0.5 - min(lfo, 1-lfo));
+/* On ajuste l'ambitus pour un delai en secondes
+   0.001 (au centre) ===> 0.5 (aux extremites). */ 
+delay = delay * 2 * slider2 + 0.001;
+val = del.delay_sread2(delay);
+
+/*** Ecriture dans la ligne delai ***/
+del.delay_write(input);
+
+/*** Filtrage passe-bas ***/
+/* Triangle entre 0 et 1 ===> triangle entre 0 et 0.5. */
+freq = min(lfo, 1-lfo);
+/* On ajuste l'ambitus pour une frequence en Hz
+   10000 (au centre) ===> 250 (aux extremites). */ 
+filt.lop_set_freq(freq * 20000 + 250);
+val = filt.lop_do(val);
+
+/*** Panoramisation ***/
+pan = lfo * $pi * 0.5;
+spl0 = val * cos(pan);
+spl1 = val * sin(pan);
+

@@ -1,0 +1,16 @@
+/*
+Redressement positif de l'onde.
+Tous les echantillons negatifs sont remplaces par la valeur 
+positive correspondante, avec ponderation entre le signal
+original et le signal redresse.
+*/ 
+
+desc: Simple Positive Rectification
+
+slider1:0<0,1>Amount of Rectification
+
+@sample
+// Interpolation entre la valeur reelle et la valeur absolue. 
+spl0 = (1 - slider1) * spl0 + slider1 * abs(spl0);
+spl1 = (1 - slider1) * spl1 + slider1 * abs(spl1);
+

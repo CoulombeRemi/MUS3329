@@ -1,0 +1,14 @@
+/*
+Amplification lineaire d'un signal stereo.
+*/
+
+desc: Gain
+
+// Gain est une valeur entre 0 et 2
+slider1:1<0,2>Gain
+
+@sample
+// Echantillon de gauche * par la valeur du potentiometre.
+spl0 = spl0 * slider1;
+// Echantillon de gauche * par la valeur du potentiometre.
+spl1 = spl1 * slider1;

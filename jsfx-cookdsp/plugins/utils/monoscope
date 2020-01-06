@@ -1,0 +1,39 @@
+/*
+Stereo Scope (c) belangeo, 2014
+
+Simple stereo scope.
+*/
+
+desc: Mono Scope
+
+slider1:1<0,2>boost
+
+@init
+histlen = 32768;
+
+@sample
+buffer[] = spl0;
+(buffer += 1) >= histlen ? buffer = 0;
+
+@gfx 400 300
+play_state == 1 ? (
+  gfx_r=gfx_g=gfx_b=1; gfx_a=1;
+  gfx_x=gfx_y=0;
+  gfx_rectto(gfx_w,gfx_h);
+
+  bufpos = buffer - samplesblock;
+  bufpos < 0 ? bufpos += histlen;
+  i = gfx_x = 0;
+  offset = gfx_h * 0.5;
+  gfx_r = gfx_g = gfx_b = 0.5;
+  gfx_line(0, offset, gfx_w, offset);
+  gfx_r = gfx_g = gfx_b = 0;
+  loop(samplesblock,
+    val = bufpos[] * slider1 * -offset + offset;
+    (bufpos += 1) >= histlen ? bufpos -= histlen;
+    i == 0 ? (gfx_y = val) : (
+      gfx_lineto(i * gfx_w / samplesblock, val, 1);
+    );
+    i += 1;
+  );
+);
